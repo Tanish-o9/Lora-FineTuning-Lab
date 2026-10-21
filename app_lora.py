@@ -432,7 +432,7 @@ with st.sidebar:
 
     st.markdown(
         f"""
-        <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px; margin-bottom:18px;">
+        <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px; margin-bottom:14px;">
             <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;">Compute Rig</div>
             <div style="margin-top:8px; font-weight:700; color:#f8fafc; font-size:0.95rem;">🖥️ {gpu_name}</div>
             <div style="margin-top:4px; font-size:0.85rem; color:#cbd5e1;">🔥 PyTorch <code>{torch_ver}</code></div>
@@ -442,6 +442,39 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+
+    # Live GPU VRAM Telemetry Bar
+    if torch.cuda.is_available():
+        alloc_mb = torch.cuda.memory_allocated() / (1024**2)
+        res_mb = torch.cuda.memory_reserved() / (1024**2)
+        total_mb = torch.cuda.get_device_properties(0).total_memory / (1024**2)
+        vram_pct = (alloc_mb / total_mb) * 100 if total_mb > 0 else 0
+        bar_color = "#10b981" if vram_pct < 60 else ("#f59e0b" if vram_pct < 85 else "#f43f5e")
+
+        st.markdown(
+            f"""
+            <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:16px; margin-bottom:18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-size:0.75rem; color:#94a3b8; text-transform:uppercase; font-weight:700; letter-spacing:0.05em;">GPU VRAM Monitor</div>
+                    <span style="font-size:0.75rem; color:{bar_color}; font-weight:700;">{vram_pct:.1f}%</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.06); height: 8px; border-radius: 999px; overflow:hidden; margin: 10px 0;">
+                    <div style="background: {bar_color}; height: 100%; width: {min(100.0, vram_pct)}%; border-radius: 999px; transition: width 0.3s ease;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#cbd5e1;">
+                    <span>Allocated: <b>{alloc_mb:.1f} MB</b></span>
+                    <span>Reserved: <b>{res_mb:.1f} MB</b></span>
+                </div>
+                <div style="font-size:0.75rem; color:#64748b; margin-top:4px; text-align:right;">Total VRAM: {total_mb:.0f} MB</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.button("🧹 Purge GPU VRAM Cache", width="stretch", key="free_gpu_cache_sidebar"):
+            torch.cuda.empty_cache()
+            st.toast("GPU VRAM cache purged successfully!", icon="🧹")
+            st.rerun()
 
     st.markdown("### 🎛️ **Benchmark Actions**")
     uploaded = st.file_uploader("Upload custom results CSV", type=["csv"], label_visibility="collapsed")
