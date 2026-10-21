@@ -1,0 +1,19 @@
+﻿# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.ipynb_checkpoints/
+
+# Large Model Checkpoints (>100MB exceeds GitHub limits)
+runs/full/model.safetensors
+*.bin
+
+# OS Metadata
+.DS_Store
+Thumbs.db

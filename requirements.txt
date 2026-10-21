@@ -1,0 +1,9 @@
+﻿torch>=2.3.0
+transformers
+peft
+datasets
+evaluate
+scikit-learn
+pandas
+streamlit
+plotly

@@ -1,0 +1,7 @@
+run,mode,model,rank,alpha,targets,lr,epochs,train_size,total_params,trainable_params,trainable_pct,train_time_s,peak_train_mem_mb,saved_size_mb,eval_time_s,accuracy,macro_f1,gpu,torch
+lora_r8_q_lin-v_lin,lora,distilbert-base-uncased,8,16,q_lin+v_lin,0.0005,2,4000,67700748,742662,1.097,16.6,684.1,2.84,21.72,0.8115,0.7363,NVIDIA GeForce RTX 2050,2.6.0+cu124
+full,full,distilbert-base-uncased,,,all,5e-05,2,4000,66958086,66958086,100.0,34.9,1324.5,255.44,12.49,0.903,0.8382,NVIDIA GeForce RTX 2050,2.6.0+cu124
+lora_r16_q_lin-k_lin-v_lin-out_lin,lora,distilbert-base-uncased,16,32,q_lin+k_lin+v_lin+out_lin,0.0005,2,4000,68143116,1185030,1.739,19.2,743.1,4.53,14.87,0.8585,0.801,NVIDIA GeForce RTX 2050,2.6.0+cu124
+dashboard_lora_test,lora,distilbert-base-uncased,8,16,q_lin+v_lin,0.0005,1,1000,67700748,742662,1.097,2.4,1998.5,3.52,3.9,0.496,0.2011,NVIDIA GeForce RTX 2050,2.6.0+cu124
+lora_ag_news_r8,lora,distilbert-base-uncased,8,16,q_lin+v_lin,0.0005,1,500,67697672,741124,1.095,1.5,1747.9,2.84,4.66,0.818,0.8086,NVIDIA GeForce RTX 2050,2.6.0+cu124
+lora_imdb_r8,lora,distilbert-base-uncased,8,16,q_lin+v_lin,0.0005,2,2000,67694596,739586,1.093,11.6,1747.9,2.83,4.73,0.779,0.4379,NVIDIA GeForce RTX 2050,2.6.0+cu124

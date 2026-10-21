@@ -1,0 +1,8 @@
+torch>=2.3
+transformers
+peft
+datasets
+evaluate
+scikit-learn
+pandas
+streamlit
