@@ -484,7 +484,7 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
 
-        if st.button("🧹 Purge GPU VRAM Cache", width="stretch", key="free_gpu_cache_sidebar"):
+        if st.button("🧹 Purge GPU VRAM Cache", use_container_width=True, key="free_gpu_cache_sidebar"):
             torch.cuda.empty_cache()
             st.toast("GPU VRAM cache purged successfully!", icon="🧹")
             st.rerun()
@@ -499,7 +499,7 @@ with st.sidebar:
         data=df.to_csv(index=False),
         file_name="lora_results.csv",
         mime="text/csv",
-        width="stretch",
+        use_container_width=True,
     )
 
     st.markdown("---")
@@ -815,7 +815,7 @@ with tab_studio:
             if uploaded_csv:
                 custom_df = pd.read_csv(uploaded_csv)
                 st.markdown(f"**Preview ({len(custom_df)} rows):**")
-                st.dataframe(custom_df.head(3), width="stretch")
+                st.dataframe(custom_df.head(3), use_container_width=True)
 
                 cols = list(custom_df.columns)
                 text_col = st.selectbox("Text Column:", cols, index=0)
@@ -890,7 +890,7 @@ with tab_studio:
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    start_train_btn = st.button("🔥 Start Training Job", type="primary", width="stretch")
+    start_train_btn = st.button("🔥 Start Training Job", type="primary", use_container_width=True)
 
     if start_train_btn:
         train_container = st.container()
@@ -1404,7 +1404,7 @@ with tab_arena:
         value="I am absolutely thrilled by this incredible breakthrough, but a little nervous about next steps!",
     )
 
-    arena_btn = st.button("🔥 Run Side-by-Side Battle", type="primary", width="stretch")
+    arena_btn = st.button("🔥 Run Side-by-Side Battle", type="primary", use_container_width=True)
 
     if arena_btn or arena_prompt:
         try:
@@ -1521,23 +1521,23 @@ with tab_playground:
     st.markdown("**⚡ Instant Test Prompts:**")
     col_chip1, col_chip2, col_chip3, col_chip4, col_chip5 = st.columns(5)
     with col_chip1:
-        if st.button("🎉 Dream Promotion", width="stretch"):
+        if st.button("🎉 Dream Promotion", use_container_width=True):
             st.session_state["play_prompt_text"] = "I just got promoted to Lead AI Engineer with my dream team!"
             st.rerun()
     with col_chip2:
-        if st.button("🕷️ Spider Surprise", width="stretch"):
+        if st.button("🕷️ Spider Surprise", use_container_width=True):
             st.session_state["play_prompt_text"] = "A giant spider suddenly jumped on my shoulder and I panicked!"
             st.rerun()
     with col_chip3:
-        if st.button("💔 Missing Past", width="stretch"):
+        if st.button("💔 Missing Past", use_container_width=True):
             st.session_state["play_prompt_text"] = "I really miss the old days and wish I could turn back time."
             st.rerun()
     with col_chip4:
-        if st.button("😡 Deleted Tables", width="stretch"):
+        if st.button("😡 Deleted Tables", use_container_width=True):
             st.session_state["play_prompt_text"] = "Who deleted all my database tables right before our demo?!"
             st.rerun()
     with col_chip5:
-        if st.button("❤️ True Gratitude", width="stretch"):
+        if st.button("❤️ True Gratitude", use_container_width=True):
             st.session_state["play_prompt_text"] = "You supported me when no one else believed in me, thank you."
             st.rerun()
 
@@ -1547,7 +1547,7 @@ with tab_playground:
     with col_ctrl1:
         selected_run = st.selectbox("🎯 Active Checkpoint:", available_runs, index=0, key="play_model_select")
         user_text = st.text_area("✍️ Text to Classify:", value=st.session_state["play_prompt_text"], height=120)
-        analyze_btn = st.button("🚀 Classify & Compute Attention", type="primary", width="stretch", key="play_exec_btn")
+        analyze_btn = st.button("🚀 Classify & Compute Attention", type="primary", use_container_width=True, key="play_exec_btn")
 
     with col_ctrl2:
         if analyze_btn or user_text:
@@ -1805,7 +1805,7 @@ with tab_table:
         "accuracy",
         "macro_f1",
     ]
-    st.dataframe(df[[c for c in cols_display if c in df.columns]], width="stretch")
+    st.dataframe(df[[c for c in cols_display if c in df.columns]], use_container_width=True)
 
     if not full_df.empty:
         base = full_df.iloc[-1]
@@ -1820,5 +1820,5 @@ with tab_table:
             st.markdown("### 📈 **LoRA Reductions vs Full Baseline**")
             st.dataframe(
                 comp[["run", "param_reduction_%", "storage_saving_%", "vram_reduction_%", "speedup_x", "acc_delta"]].set_index("run"),
-                width="stretch",
+                use_container_width=True,
             )
