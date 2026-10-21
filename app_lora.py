@@ -2,9 +2,10 @@
 LoRA Fine-Tuning Lab - Ultimate Interactive AI Dashboard & Training Studio
 Features:
   - 🚀 Live In-Browser Training Studio: Train on ANY Custom CSV or HuggingFace Dataset
+  - 📜 Lab Activity & History Timeline: Complete run audit, CLI snippets, and Standalone Model Fusion
   - 📊 Executive Analytics & Multi-Dimensional Radar Tradeoff
   - ⚔️ Model Arena: Side-by-Side Real-Time Inference Battle
-  - 🧪 Single Model Playground with Live Gauge & Dynamic Class Adapters
+  - 🧪 Live Inference Playground with Explainable AI (Self-Attention Token Heatmap)
   - 🧮 LoRA Math & Interactive Rank Parameter Calculator
   - 📋 Benchmark Database & Export Matrix
 """
@@ -259,7 +260,7 @@ st.markdown(
         border: 1px solid rgba(168, 85, 247, 0.35);
     }
 
-    /* Global Button Styling (Modern Gradient Lift) */
+    /* Global Button Styling */
     .stButton > button {
         background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%) !important;
         color: #ffffff !important;
@@ -375,6 +376,24 @@ st.markdown(
         font-weight: 600;
     }
 
+    /* Explainable AI Token Chips */
+    .token-chip {
+        display: inline-flex;
+        align-items: center;
+        margin: 4px;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    .token-chip:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
     /* Emotion Playground styles */
     .prob-bar-container {
         margin-bottom: 12px;
@@ -403,14 +422,6 @@ st.markdown(
 )
 
 DEFAULT_LABELS = ["sadness", "joy", "love", "anger", "fear", "surprise"]
-DEFAULT_ICONS = {
-    "sadness": "😢",
-    "joy": "😊",
-    "love": "❤️",
-    "anger": "😡",
-    "fear": "😨",
-    "surprise": "😲",
-}
 PALETTE = ["#38bdf8", "#facc15", "#f43f5e", "#ef4444", "#a855f7", "#34d399", "#fb923c", "#818cf8"]
 
 # ----------------------------------------------------------------------------
@@ -424,7 +435,7 @@ if not results_file.exists():
 df = pd.read_csv(results_file)
 
 # ----------------------------------------------------------------------------
-# Sidebar
+# Sidebar with Live GPU VRAM Monitor & Purge Cache Action
 # ----------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### ⚙️ **System Telemetry**")
@@ -550,7 +561,10 @@ if not full_df.empty and not lora_df.empty:
         st.markdown(
             f"""
             <div class="metric-card-storage">
-                <div class="metric-title">💾 Disk Storage Saving</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="metric-title">Disk Storage Saving</div>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                </div>
                 <div class="metric-value">-{size_red:.1f}%</div>
                 <div class="metric-sub">
                     <span class="badge-green">{std_lora['saved_size_mb']:.2f} MB checkpoint</span>
@@ -564,7 +578,10 @@ if not full_df.empty and not lora_df.empty:
         st.markdown(
             f"""
             <div class="metric-card-params">
-                <div class="metric-title">🧠 Trainable Parameters</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="metric-title">Trainable Parameters</div>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
+                </div>
                 <div class="metric-value">-{param_red:.1f}%</div>
                 <div class="metric-sub">
                     <span class="badge-blue">{std_lora['trainable_pct']:.2f}% active</span>
@@ -578,7 +595,10 @@ if not full_df.empty and not lora_df.empty:
         st.markdown(
             f"""
             <div class="metric-card-speed">
-                <div class="metric-title">⚡ Training Speedup</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="metric-title">Training Speedup</div>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                </div>
                 <div class="metric-value">{speedup:.1f}x</div>
                 <div class="metric-sub">
                     <span class="badge-purple">{std_lora['train_time_s']}s duration</span>
@@ -592,7 +612,10 @@ if not full_df.empty and not lora_df.empty:
         st.markdown(
             f"""
             <div class="metric-card-acc">
-                <div class="metric-title">🎯 Best LoRA Accuracy</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="metric-title">Best LoRA Accuracy</div>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                </div>
                 <div class="metric-value">{best_lora['accuracy']*100:.1f}%</div>
                 <div class="metric-sub">
                     <span class="badge-green">{best_lora['run']}</span>
@@ -798,7 +821,6 @@ with tab_studio:
                 text_col = st.selectbox("Text Column:", cols, index=0)
                 label_col = st.selectbox("Label Column:", cols, index=min(1, len(cols) - 1))
 
-                # Extract and clean
                 custom_df = custom_df.dropna(subset=[text_col, label_col])
                 unique_labels = sorted(list(custom_df[label_col].unique()))
                 st.success(f"Detected **{len(unique_labels)} classes**: `{unique_labels}`")
@@ -868,7 +890,6 @@ with tab_studio:
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # 3. Launch Training Button
     start_train_btn = st.button("🔥 Start Training Job", type="primary", width="stretch")
 
     if start_train_btn:
@@ -979,7 +1000,6 @@ with tab_studio:
                 train_time = time.perf_counter() - t0
                 peak_mb = torch.cuda.max_memory_allocated() / 1024**2 if device == "cuda" else float("nan")
 
-                # Evaluation
                 status_text.info("Evaluating fine-tuned model on test split...")
                 t_eval_0 = time.perf_counter()
                 model.eval()
@@ -995,7 +1015,6 @@ with tab_studio:
                 acc = evaluate.load("accuracy").compute(predictions=preds, references=labels_list)["accuracy"]
                 f1 = evaluate.load("f1").compute(predictions=preds, references=labels_list, average="macro")["f1"]
 
-                # Save Checkpoint
                 out_path = Path("runs") / custom_run_name
                 out_path.mkdir(parents=True, exist_ok=True)
                 model.save_pretrained(out_path)
@@ -1003,7 +1022,6 @@ with tab_studio:
                 saved_mb = sum(f.stat().st_size for f in out_path.rglob("*") if f.is_file()) / 1024**2
                 tok.save_pretrained(out_path)
 
-                # Append to CSV
                 new_row = {
                     "run": custom_run_name,
                     "mode": t_mode,
@@ -1044,18 +1062,17 @@ with tab_studio:
 
 
 # ----------------------------------------------------------------------------
-# TAB 2: Lab Activity & History Timeline
+# TAB 2: Lab Activity & History Timeline (with Model Fusion & CLI Generator)
 # ----------------------------------------------------------------------------
 with tab_history:
     st.markdown("### 📜 **Lab Activity & Experiment Timeline**")
     st.markdown("Complete chronological audit trail of all training runs, ablation studies, and model checkpoints generated in this workspace.")
 
-    # Top KPI summary for history
     hist_c1, hist_c2, hist_c3, hist_c4 = st.columns(4)
     with hist_c1:
         st.markdown(
             f"""
-            <div class="metric-card" style="padding:16px;">
+            <div class="metric-card-storage" style="padding:16px;">
                 <div class="metric-title">🔬 Total Experiments</div>
                 <div class="metric-value" style="font-size:1.8rem;">{len(df)}</div>
                 <div class="metric-sub"><span class="badge-blue">Saved Runs</span></div>
@@ -1067,7 +1084,7 @@ with tab_history:
         tot_time = df["train_time_s"].sum()
         st.markdown(
             f"""
-            <div class="metric-card" style="padding:16px;">
+            <div class="metric-card-speed" style="padding:16px;">
                 <div class="metric-title">⚡ Total Compute</div>
                 <div class="metric-value" style="font-size:1.8rem;">{tot_time:.1f}s</div>
                 <div class="metric-sub"><span class="badge-purple">GPU Active Time</span></div>
@@ -1079,7 +1096,7 @@ with tab_history:
         best_run_row = df.sort_values(by="accuracy", ascending=False).iloc[0]
         st.markdown(
             f"""
-            <div class="metric-card" style="padding:16px;">
+            <div class="metric-card-acc" style="padding:16px;">
                 <div class="metric-title">🏆 Best Accuracy</div>
                 <div class="metric-value" style="font-size:1.8rem;">{best_run_row['accuracy']*100:.1f}%</div>
                 <div class="metric-sub"><span class="badge-green">{best_run_row['run']}</span></div>
@@ -1091,7 +1108,7 @@ with tab_history:
         tot_size = df["saved_size_mb"].sum()
         st.markdown(
             f"""
-            <div class="metric-card" style="padding:16px;">
+            <div class="metric-card-params" style="padding:16px;">
                 <div class="metric-title">📦 Total Checkpoints</div>
                 <div class="metric-value" style="font-size:1.8rem;">{tot_size:.1f} MB</div>
                 <div class="metric-sub"><span class="badge-blue">On Disk</span></div>
@@ -1102,7 +1119,6 @@ with tab_history:
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # Filter and Search row
     f_c1, f_c2, f_c3 = st.columns([1, 1.2, 1.8])
     with f_c1:
         hist_mode_filter = st.selectbox("Filter Mode:", ["All Modes", "LoRA Only", "Full Fine-Tuning Only"], index=0, key="hist_filter_mode")
@@ -1116,7 +1132,6 @@ with tab_history:
     with f_c3:
         hist_search = st.text_input("🔍 Search Experiments:", placeholder="Search by run name, rank, or targets...", key="hist_search_box")
 
-    # Apply filters
     filtered_df = df.copy()
     if hist_mode_filter == "LoRA Only":
         filtered_df = filtered_df[filtered_df["mode"] == "lora"]
@@ -1138,14 +1153,12 @@ with tab_history:
 
     st.markdown("---")
 
-    # Render each run as an activity card
     for idx_num, (_, row) in enumerate(filtered_df.iterrows(), 1):
         run_name = str(row["run"])
         run_mode = str(row["mode"]).upper()
         mode_color = "#a855f7" if row["mode"] == "lora" else "#f43f5e"
         border_color = "#8b5cf6" if row["mode"] == "lora" else "#f43f5e"
 
-        # Check timestamp from filesystem
         ckpt_dir = Path("runs") / run_name
         if ckpt_dir.exists():
             mtime = ckpt_dir.stat().st_mtime
@@ -1368,7 +1381,7 @@ with tab_analytics:
 
 
 # ----------------------------------------------------------------------------
-# TAB 3: Model Arena (Side-by-Side Dual Inference Battle)
+# TAB 4: Model Arena (Side-by-Side Dual Inference Battle)
 # ----------------------------------------------------------------------------
 with tab_arena:
     st.markdown("### ⚔️ **Model Arena: Head-to-Head Inference Battle**")
@@ -1666,7 +1679,7 @@ with tab_playground:
 
 
 # ----------------------------------------------------------------------------
-# TAB 5: LoRA Parameter Calculator & Architecture Explorer
+# TAB 6: LoRA Parameter Calculator & Architecture Explorer
 # ----------------------------------------------------------------------------
 with tab_calc:
     st.markdown("### 🧮 **Interactive LoRA Parameter & Memory Calculator**")
@@ -1774,7 +1787,7 @@ with tab_calc:
 
 
 # ----------------------------------------------------------------------------
-# TAB 6: Benchmark Database & Full Reductions Matrix
+# TAB 7: Benchmark Database & Full Reductions Matrix
 # ----------------------------------------------------------------------------
 with tab_table:
     st.markdown("### 📋 **Complete Benchmarked Runs**")
