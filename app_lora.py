@@ -1118,17 +1118,37 @@ with tab_history:
             unsafe_allow_html=True,
         )
 
-        with st.expander(f"📂 View Files & CLI Snippet for `{run_name}`"):
+        with st.expander(f"📂 Actions, Checkpoint Files & Model Fusion for `{run_name}`"):
             col_exp1, col_exp2 = st.columns([1.2, 1])
             with col_exp1:
                 st.markdown("**Saved Checkpoint Files:**")
                 st.code("\n".join(files_list) if files_list else "No files found")
+
+                if row["mode"] == "lora" and ckpt_dir.exists():
+                    st.markdown("##### ⚡ **One-Click Adapter Fusion**")
+                    st.caption("Merge delta weights into base DistilBERT for zero-latency standalone inference ($W = W_0 + \\Delta W$).")
+                    if st.button(f"⚡ Merge & Export Standalone Model", key=f"btn_fuse_{run_name}"):
+                        with st.spinner("Fusing LoRA weights into base model..."):
+                            try:
+                                base_m = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=6)
+                                peft_m = PeftModel.from_pretrained(base_m, str(ckpt_dir))
+                                merged_m = peft_m.merge_and_unload()
+                                fused_dir = Path("runs") / f"{run_name}_merged"
+                                fused_dir.mkdir(parents=True, exist_ok=True)
+                                merged_m.save_pretrained(fused_dir)
+                                tok = AutoTokenizer.from_pretrained(str(ckpt_dir))
+                                tok.save_pretrained(fused_dir)
+                                st.toast(f"Merged model exported to runs/{run_name}_merged!", icon="🚀")
+                                st.success(f"✅ Standalone model ready at `{fused_dir}` (No PEFT dependency required).")
+                            except Exception as e:
+                                st.error(f"Fusion failed: {e}")
+
             with col_exp2:
                 st.markdown("**Inference CLI Snippet:**")
                 if row["mode"] == "lora":
                     st.code(f'python predict.py --adapter runs/{run_name} "your test sentence"')
                 else:
-                    st.code(f"# Full checkpoint at runs/{run_name}")
+                    st.code(f'python -c "from transformers import pipeline; p = pipeline(\'text-classification\', model=\'runs/{run_name}\'); print(p(\'Hello world\'))"')
 
 
 # ----------------------------------------------------------------------------
