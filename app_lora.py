@@ -1600,6 +1600,43 @@ with tab_calc:
             unsafe_allow_html=True,
         )
 
+    st.markdown(
+        f"""
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 24px; margin-top: 20px;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;">
+                ⚡ Visual LoRA Weight Decomposition Architecture
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 14px; text-align: center;">
+                <div style="background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 20px;">
+                    <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700;">INPUT TENSOR</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; font-family:'JetBrains Mono', monospace; margin-top: 4px;">x (d = {d})</div>
+                </div>
+                <div style="font-size: 1.6rem; color: #6366f1;">➔</div>
+                <div style="display: flex; flex-direction: column; gap: 12px; min-width: 320px;">
+                    <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 12px 18px;">
+                        <div style="font-size: 0.72rem; color: #60a5fa; font-weight: 700;">🔒 PRE-TRAINED WEIGHTS W_0 (FROZEN)</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #cbd5e1; font-family:'JetBrains Mono', monospace; margin-top: 2px;">
+                            {d} × {d} ({d*d:,} params)
+                        </div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(236, 72, 153, 0.12)); border: 1px solid rgba(168, 85, 247, 0.45); border-radius: 14px; padding: 12px 18px;">
+                        <div style="font-size: 0.72rem; color: #c084fc; font-weight: 700;">🔥 LORA LOW-RANK FACTORIZATION (ACTIVE)</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #f8fafc; font-family:'JetBrains Mono', monospace; margin-top: 2px;">
+                            Down-proj A ({d} × {sim_rank}) ➔ Up-proj B ({sim_rank} × {d}) × (α/r = {scaling_ratio:.1f})
+                        </div>
+                    </div>
+                </div>
+                <div style="font-size: 1.6rem; color: #6366f1;">➔ ⊕ ➔</div>
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 14px 20px;">
+                    <div style="font-size: 0.72rem; color: #34d399; font-weight: 700;">OUTPUT ACTIVATION</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #f8fafc; font-family:'JetBrains Mono', monospace; margin-top: 4px;">h = W_0·x + ΔW·x</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 # ----------------------------------------------------------------------------
 # TAB 6: Benchmark Database & Full Reductions Matrix
