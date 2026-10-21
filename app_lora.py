@@ -11,11 +11,13 @@ Features:
 import time
 from datetime import datetime
 from pathlib import Path
+import json
 import evaluate
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import safetensors.torch
 import streamlit as st
 import torch
 from datasets import Dataset, load_dataset
@@ -618,30 +620,111 @@ tab_studio, tab_history, tab_analytics, tab_arena, tab_playground, tab_calc, tab
 )
 
 # ----------------------------------------------------------------------------
-# Helper: Model Caching for Inference
+# Helper: Robust Class & Label Detection + Model Caching
 # ----------------------------------------------------------------------------
+def _get_classes_for_num(num_classes: int, run_name: str = ""):
+    name = run_name.lower()
+    if num_classes == 4 or "ag_news" in name:
+        return ["World", "Sports", "Business", "Sci/Tech"]
+    elif num_classes == 2 or "imdb" in name:
+        return ["Negative", "Positive"]
+    elif num_classes == 6 or "emotion" in name:
+        return ["sadness", "joy", "love", "anger", "fear", "surprise"]
+    else:
+        return [f"Class_{i}" for i in range(num_classes)]
+
+
+def get_model_num_classes_and_labels(adapter_dir_str: str):
+    adapter_dir = Path(adapter_dir_str)
+
+    # 1. Check if config.json exists
+    cfg_file = adapter_dir / "config.json"
+    if cfg_file.exists():
+        try:
+            with open(cfg_file, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            if "id2label" in cfg and cfg["id2label"]:
+                id2label = {int(k): str(v) for k, v in cfg["id2label"].items()}
+                classes = [id2label[i] for i in range(len(id2label))]
+                return len(classes), classes
+            if "num_labels" in cfg:
+                num = int(cfg["num_labels"])
+                return num, _get_classes_for_num(num, adapter_dir.name)
+        except Exception:
+            pass
+
+    # 2. Inspect adapter_model.safetensors directly
+    st_file = adapter_dir / "adapter_model.safetensors"
+    if st_file.exists():
+        try:
+            tensors = safetensors.torch.load_file(str(st_file))
+            for k, v in tensors.items():
+                if "classifier.weight" in k and "pre_classifier" not in k:
+                    num_classes = int(v.shape[0])
+                    return num_classes, _get_classes_for_num(num_classes, adapter_dir.name)
+        except Exception:
+            pass
+
+    # 3. Check model.safetensors (full model or merged)
+    full_st = adapter_dir / "model.safetensors"
+    if full_st.exists():
+        try:
+            tensors = safetensors.torch.load_file(str(full_st))
+            for k, v in tensors.items():
+                if "classifier.weight" in k and "pre_classifier" not in k:
+                    num_classes = int(v.shape[0])
+                    return num_classes, _get_classes_for_num(num_classes, adapter_dir.name)
+        except Exception:
+            pass
+
+    # 4. Check adapter_model.bin
+    bin_file = adapter_dir / "adapter_model.bin"
+    if bin_file.exists():
+        try:
+            tensors = torch.load(str(bin_file), map_location="cpu")
+            for k, v in tensors.items():
+                if "classifier.weight" in k and "pre_classifier" not in k:
+                    num_classes = int(v.shape[0])
+                    return num_classes, _get_classes_for_num(num_classes, adapter_dir.name)
+        except Exception:
+            pass
+
+    # 5. Fallback based on run name or default 6
+    name = adapter_dir.name.lower()
+    if "ag_news" in name:
+        return 4, ["World", "Sports", "Business", "Sci/Tech"]
+    elif "imdb" in name:
+        return 2, ["Negative", "Positive"]
+    return 6, ["sadness", "joy", "love", "anger", "fear", "surprise"]
+
+
 @st.cache_resource(show_spinner=False)
 def load_cached_model(adapter_dir: str):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(adapter_dir)
-    if "full" in adapter_dir.lower():
-        model = AutoModelForSequenceClassification.from_pretrained(adapter_dir)
+    num_classes, detected_classes = get_model_num_classes_and_labels(adapter_dir)
+
+    if "full" in adapter_dir.lower() or "_merged" in adapter_dir.lower() or "_fused" in adapter_dir.lower():
+        model = AutoModelForSequenceClassification.from_pretrained(
+            adapter_dir, num_labels=num_classes, attn_implementation="eager"
+        )
     else:
-        # Check num_labels from config if exists
-        try:
-            test_model = AutoModelForSequenceClassification.from_pretrained(adapter_dir)
-            num_classes = test_model.config.num_labels
-        except Exception:
-            num_classes = 6
-        base = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased", num_labels=num_classes)
+        base = AutoModelForSequenceClassification.from_pretrained(
+            "distilbert-base-uncased", num_labels=num_classes, attn_implementation="eager"
+        )
         model = PeftModel.from_pretrained(base, adapter_dir)
     model.to(device).eval()
 
-    # Determine class label names
-    if hasattr(model.config, "id2label") and model.config.id2label:
+    has_custom_labels = (
+        hasattr(model.config, "id2label")
+        and model.config.id2label
+        and len(model.config.id2label) == num_classes
+        and not all(str(v).startswith("LABEL_") for v in model.config.id2label.values())
+    )
+    if has_custom_labels:
         classes = [str(model.config.id2label[i]) for i in range(len(model.config.id2label))]
     else:
-        classes = DEFAULT_LABELS[: model.config.num_labels]
+        classes = detected_classes
 
     return tok, model, device, classes
 
@@ -932,6 +1015,7 @@ with tab_studio:
                 out_path = Path("runs") / custom_run_name
                 out_path.mkdir(parents=True, exist_ok=True)
                 model.save_pretrained(out_path)
+                model.config.save_pretrained(out_path)
                 saved_mb = sum(f.stat().st_size for f in out_path.rglob("*") if f.is_file()) / 1024**2
                 tok.save_pretrained(out_path)
 
