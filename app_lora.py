@@ -740,6 +740,25 @@ def run_single_inference(tok, model, device, classes, text: str):
     return classes[top_idx], probs[top_idx] * 100, probs, latency_ms
 
 
+def run_inference_with_explainability(tok, model, device, classes, text: str):
+    t_start = time.perf_counter()
+    inputs = tok(text, return_tensors="pt", truncation=True, max_length=128).to(device)
+    with torch.no_grad():
+        outputs = model(**inputs, output_attentions=True)
+        logits = outputs.logits
+        probs = logits.softmax(-1).cpu().numpy()[0]
+    latency_ms = (time.perf_counter() - t_start) * 1000
+    top_idx = int(np.argmax(probs))
+
+    tokens = tok.convert_ids_to_tokens(inputs["input_ids"][0])
+    cls_attn = []
+    if outputs.attentions is not None and len(outputs.attentions) > 0:
+        last_attn = outputs.attentions[-1][0].mean(dim=0)
+        cls_attn = last_attn[0].cpu().numpy().tolist()
+
+    return classes[top_idx], probs[top_idx] * 100, probs, latency_ms, tokens, cls_attn
+
+
 # ----------------------------------------------------------------------------
 # TAB 1: Live Training Studio (Custom CSV / HF Dataset Training)
 # ----------------------------------------------------------------------------
@@ -1511,53 +1530,67 @@ with tab_arena:
 
 
 # ----------------------------------------------------------------------------
-# TAB 4: Live Inference Playground (Single Model with Gauge)
+# TAB 5: Live Inference Playground (Explainable AI & Token Attention Heatmap)
 # ----------------------------------------------------------------------------
 with tab_playground:
-    st.markdown("### 🧪 **Live Model Playground**")
-    st.markdown("Deep dive into confidence distributions and class meters for any individual checkpoint.")
+    st.markdown("### 🧪 **Live Model Playground & Explainable AI**")
+    st.markdown("Analyze predictions, probability gauges, and **multi-head self-attention token heatmaps** showing exactly why the model made its decision.")
+
+    if "play_prompt_text" not in st.session_state:
+        st.session_state["play_prompt_text"] = "I feel incredibly joyful and excited about this new breakthrough!"
+
+    # Interactive prompt chip buttons
+    st.markdown("**⚡ Instant Test Prompts:**")
+    col_chip1, col_chip2, col_chip3, col_chip4, col_chip5 = st.columns(5)
+    with col_chip1:
+        if st.button("🎉 Dream Promotion", width="stretch"):
+            st.session_state["play_prompt_text"] = "I just got promoted to Lead AI Engineer with my dream team!"
+            st.rerun()
+    with col_chip2:
+        if st.button("🕷️ Spider Surprise", width="stretch"):
+            st.session_state["play_prompt_text"] = "A giant spider suddenly jumped on my shoulder and I panicked!"
+            st.rerun()
+    with col_chip3:
+        if st.button("💔 Missing Past", width="stretch"):
+            st.session_state["play_prompt_text"] = "I really miss the old days and wish I could turn back time."
+            st.rerun()
+    with col_chip4:
+        if st.button("😡 Deleted Tables", width="stretch"):
+            st.session_state["play_prompt_text"] = "Who deleted all my database tables right before our demo?!"
+            st.rerun()
+    with col_chip5:
+        if st.button("❤️ True Gratitude", width="stretch"):
+            st.session_state["play_prompt_text"] = "You supported me when no one else believed in me, thank you."
+            st.rerun()
+
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
     col_ctrl1, col_ctrl2 = st.columns([1.1, 2])
     with col_ctrl1:
-        selected_run = st.selectbox("🎯 Active Checkpoint:", available_runs, index=0, key="play_model")
-
-        st.markdown("**Quick Preset Prompts:**")
-        p1 = st.button("🎉 'I just got my dream job promotion!'", key="btn_p1", width="stretch")
-        p2 = st.button("😨 'A spider just jumped on my shoulder!'", key="btn_p2", width="stretch")
-        p3 = st.button("💔 'I really miss those good old days.'", key="btn_p3", width="stretch")
-        p4 = st.button("😡 'Who deleted all my database tables?!'", key="btn_p4", width="stretch")
+        selected_run = st.selectbox("🎯 Active Checkpoint:", available_runs, index=0, key="play_model_select")
+        user_text = st.text_area("✍️ Text to Classify:", value=st.session_state["play_prompt_text"], height=120)
+        analyze_btn = st.button("🚀 Classify & Compute Attention", type="primary", width="stretch", key="play_exec_btn")
 
     with col_ctrl2:
-        default_prompt = "I feel incredibly joyful and excited about this new breakthrough!"
-        if p1:
-            default_prompt = "I just got my dream job promotion!"
-        elif p2:
-            default_prompt = "A spider just jumped on my shoulder!"
-        elif p3:
-            default_prompt = "I really miss those good old days."
-        elif p4:
-            default_prompt = "Who deleted all my database tables?!"
-
-        user_text = st.text_area("✍️ Enter text to classify:", value=default_prompt, height=90)
-        analyze_btn = st.button("🚀 Classify Text", type="primary", width="stretch", key="play_btn")
-
         if analyze_btn or user_text:
             ckpt_path = str(Path("runs") / selected_run)
             try:
-                with st.spinner("Computing forward pass..."):
+                with st.spinner("Computing forward pass & extracting multi-head self-attention..."):
                     tok, model, device, classes = load_cached_model(ckpt_path)
-                    top_pred, top_conf, probs, inf_latency_ms = run_single_inference(tok, model, device, classes, user_text)
+                    top_pred, top_conf, probs, inf_latency_ms, tokens, cls_attn = run_inference_with_explainability(
+                        tok, model, device, classes, user_text
+                    )
 
-                col_top_res, col_gauge = st.columns([1.4, 1.2])
+                col_top_res, col_gauge = st.columns([1.3, 1.2])
                 with col_top_res:
                     st.markdown(
                         f"""
-                        <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:20px; margin: 10px 0;">
-                            <div style="font-size:0.8rem; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Predicted Class</div>
+                        <div style="background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:20px; margin: 4px 0 14px 0;">
+                            <div style="font-size:0.8rem; color:#94a3b8; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Predicted Category</div>
                             <div style="font-size:2.2rem; font-weight:800; color:#38bdf8; margin-top:4px;">
                                 {top_pred.upper()}
                             </div>
-                            <div style="font-size:1.1rem; color:#e2e8f0; font-weight:600; margin-top:4px;">Confidence: {top_conf:.1f}%</div>
+                            <div style="font-size:1.1rem; color:#e2e8f0; font-weight:600; margin-top:4px;">Confidence: <b>{top_conf:.1f}%</b></div>
                             <div style="font-size:0.8rem; color:#64748b; margin-top:4px;">⚡ Latency: {inf_latency_ms:.1f} ms | Device: {device.upper()}</div>
                         </div>
                         """,
@@ -1569,8 +1602,8 @@ with tab_playground:
                         go.Indicator(
                             mode="gauge+number",
                             value=top_conf,
-                            title={"text": f"<b>{top_pred.capitalize()} Confidence</b>", "font": {"size": 15, "color": "#cbd5e1"}},
-                            number={"suffix": "%", "font": {"size": 24, "color": "#38bdf8"}},
+                            title={"text": f"<b>{top_pred.capitalize()} Confidence</b>", "font": {"size": 14, "color": "#cbd5e1"}},
+                            number={"suffix": "%", "font": {"size": 22, "color": "#38bdf8"}},
                             gauge={
                                 "axis": {"range": [0, 100], "tickcolor": "#94a3b8"},
                                 "bar": {"color": "#38bdf8"},
@@ -1590,8 +1623,61 @@ with tab_playground:
                         height=160,
                         margin=dict(l=10, r=10, t=30, b=10),
                     )
-                    st.plotly_chart(fig_gauge, width="stretch")
+                    st.plotly_chart(fig_gauge, key="playground_confidence_gauge")
 
+                # Explainable AI: Token Attention Heatmap
+                if tokens and cls_attn:
+                    st.markdown("#### 🧠 **Explainable AI: Self-Attention Token Heatmap**")
+                    st.caption("Visualizing token contribution weights from the `[CLS]` token across the last Transformer layer.")
+
+                    content_tokens = [a for t, a in zip(tokens, cls_attn) if t not in ["[CLS]", "[SEP]", "<pad>", "<s>", "</s>"]]
+                    max_a = max(content_tokens) if content_tokens and max(content_tokens) > 0 else (max(cls_attn) if cls_attn else 1.0)
+                    min_a = min(content_tokens) if content_tokens else 0.0
+
+                    chips_html = []
+                    for t, a in zip(tokens, cls_attn):
+                        is_special = t in ["[CLS]", "[SEP]", "<pad>", "<s>", "</s>"]
+                        clean_t = t.replace("##", "")
+                        if is_special:
+                            chips_html.append(
+                                f'<span class="token-chip" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: #64748b;" title="Special Token: {t}">{clean_t}</span>'
+                            )
+                        else:
+                            norm_score = (a - min_a) / (max_a - min_a + 1e-8) if max_a > min_a else 0.5
+                            intensity = 0.15 + 0.75 * norm_score
+                            border_opacity = min(1.0, intensity + 0.25)
+                            chips_html.append(
+                                f'<span class="token-chip" style="background: rgba(99, 102, 241, {intensity:.2f}); border: 1px solid rgba(168, 85, 247, {border_opacity:.2f}); color: #ffffff;" title="Attention Score: {a*100:.1f}%">{clean_t} <span style="font-size:0.68rem; opacity:0.75; margin-left:4px;">{a*100:.1f}%</span></span>'
+                            )
+
+                    st.markdown(
+                        f"""
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; margin: 10px 0;">
+                            {''.join(chips_html)}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                    non_spec_pairs = [(t, a) for t, a in zip(tokens, cls_attn) if t not in ["[CLS]", "[SEP]", "<pad>", "<s>", "</s>"]]
+                    if non_spec_pairs:
+                        top_token, top_attn_val = max(non_spec_pairs, key=lambda x: x[1])
+                        st.markdown(
+                            f"""
+                            <div style="display:flex; justify-content:space-between; align-items:center; background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12)); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 12px; padding: 12px 18px; margin-top: 10px;">
+                                <div>
+                                    <span style="font-size:0.75rem; text-transform:uppercase; color:#a5b4fc; font-weight:700; letter-spacing:0.04em;">Primary Decision Driver</span>
+                                    <div style="font-size:1.15rem; font-weight:800; color:#f8fafc; font-family:'JetBrains Mono', monospace; margin-top:2px;">
+                                        "{top_token.replace('##', '')}" <span style="font-size:0.85rem; color:#38bdf8; font-weight:600;">({top_attn_val*100:.1f}% of total CLS attention)</span>
+                                    </div>
+                                </div>
+                                <span class="status-pill" style="font-size:0.75rem;">HIGH IMPACT</span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
                 st.markdown("#### **Full Probability Distribution:**")
                 for label, prob in zip(classes, probs):
                     pct = prob * 100
