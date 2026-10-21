@@ -872,106 +872,71 @@ with tab_studio:
     start_train_btn = st.button("🔥 Start Training Job", type="primary", width="stretch")
 
     if start_train_btn:
-        progress_box = st.container()
-        with progress_box:
-            st.markdown("### ⏳ **Training in Progress...**")
+        train_container = st.container()
+        with train_container:
+            st.markdown("---")
+            st.markdown(f"### ⚙️ Executing Run: `{custom_run_name}`")
             pbar = st.progress(0.0)
             status_text = st.empty()
 
             try:
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-                status_text.info(f"Loading tokenizer & dataset on **{device.upper()}**...")
-
+                status_text.info(f"Loading and preparing dataset: `{dataset_display_name}`...")
                 tok = AutoTokenizer.from_pretrained(t_model)
 
-                # Prepare Dataset
                 if "Upload Custom CSV" in dataset_source:
                     if train_texts is None:
-                        st.error("Please upload a CSV file first!")
+                        st.error("Please upload a valid CSV first.")
                         st.stop()
-                    n_total = min(len(train_texts), t_samples)
-                    n_train = int(n_total * 0.8)
-
-                    raw_train = Dataset.from_dict({"text": train_texts[:n_train], "labels": train_labels[:n_train]})
-                    raw_test = Dataset.from_dict({"text": train_texts[n_train:n_total], "labels": train_labels[n_train:n_total]})
                     num_classes = len(unique_labels)
+                    split_idx = int(0.85 * len(train_texts))
+                    raw_train = Dataset.from_dict({"text": train_texts[:split_idx][:t_samples], "label": train_labels[:split_idx][:t_samples]})
+                    raw_test = Dataset.from_dict({"text": train_texts[split_idx:], "label": train_labels[split_idx:]})
                 else:
-                    status_text.info(f"Downloading {dataset_name} from Hugging Face...")
                     ds = load_dataset(dataset_name)
-                    split_train = ds["train"].shuffle(seed=42).select(range(min(t_samples, len(ds["train"]))))
-                    split_test = ds["test"] if "test" in ds else ds["validation"]
-                    split_test = split_test.select(range(min(1000, len(split_test))))
+                    train_split = ds["train"].shuffle(seed=42).select(range(min(t_samples, len(ds["train"]))))
+                    test_split = ds["test"].select(range(min(1000, len(ds["test"]))))
 
-                    # Detect text column
-                    text_candidate = "text"
-                    for col in ["text", "sentence", "content", "review", "description"]:
-                        if col in split_train.column_names:
-                            text_candidate = col
-                            break
+                    label_feature = ds["train"].features["label"]
+                    num_classes = label_feature.num_classes
+                    id2label = {i: label_feature.names[i] for i in range(num_classes)}
+                    label2id = {label_feature.names[i]: i for i in range(num_classes)}
+                    raw_train, raw_test = train_split, test_split
 
-                    # Detect label column
-                    label_candidate = "label"
-                    for col in ["label", "labels", "category", "target"]:
-                        if col in split_train.column_names:
-                            label_candidate = col
-                            break
+                def tokenize_fn(examples):
+                    return tok(examples["text"], truncation=True, max_length=128)
 
-                    raw_train = split_train.rename_column(text_candidate, "text") if text_candidate != "text" else split_train
-                    raw_test = split_test.rename_column(text_candidate, "text") if text_candidate != "text" else split_test
+                tokenized_train = raw_train.map(tokenize_fn, batched=True, remove_columns=["text"])
+                tokenized_test = raw_test.map(tokenize_fn, batched=True, remove_columns=["text"])
 
-                    raw_train = raw_train.rename_column(label_candidate, "labels") if label_candidate != "labels" else raw_train
-                    raw_test = raw_test.rename_column(label_candidate, "labels") if label_candidate != "labels" else raw_test
-
-                    # Known human-readable labels for standard presets
-                    if "ag_news" in dataset_name:
-                        id2label = {0: "World", 1: "Sports", 2: "Business", 3: "Sci/Tech"}
-                    elif "imdb" in dataset_name:
-                        id2label = {0: "Negative", 1: "Positive"}
-                    elif "emotion" in dataset_name:
-                        id2label = {0: "sadness", 1: "joy", 2: "love", 3: "anger", 4: "fear", 5: "surprise"}
-                    else:
-                        num_classes = len(set(raw_train["labels"]))
-                        id2label = {i: f"class_{i}" for i in range(num_classes)}
-
-                    num_classes = len(id2label)
-                    label2id = {v: k for k, v in id2label.items()}
-
-                def tokenize(batch):
-                    return tok(batch["text"], truncation=True, max_length=64)
-
-                tokenized_train = raw_train.map(tokenize, batched=True, remove_columns=["text"])
-                tokenized_test = raw_test.map(tokenize, batched=True, remove_columns=["text"])
-
-                collator = DataCollatorWithPadding(tok)
+                collator = DataCollatorWithPadding(tok, pad_to_multiple_of=8)
                 train_loader = DataLoader(tokenized_train, batch_size=t_batch, shuffle=True, collate_fn=collator)
                 test_loader = DataLoader(tokenized_test, batch_size=64, shuffle=False, collate_fn=collator)
 
-                # Build Model
-                status_text.info("Injecting LoRA adapters into model...")
+                status_text.info("Initializing neural network architecture...")
+                device = "cuda" if torch.cuda.is_available() else "cpu"
                 model = AutoModelForSequenceClassification.from_pretrained(
                     t_model,
                     num_labels=num_classes,
                     id2label=id2label,
                     label2id=label2id,
+                    attn_implementation="eager",
                 )
 
                 if t_mode == "lora":
-                    heads = [n for n in ("pre_classifier", "classifier", "score") if hasattr(model, n)]
-                    cfg = LoraConfig(
+                    lora_cfg = LoraConfig(
                         task_type=TaskType.SEQ_CLS,
                         r=t_rank,
                         lora_alpha=t_alpha,
                         lora_dropout=0.1,
                         target_modules=t_targets,
-                        modules_to_save=heads,
                     )
-                    model = get_peft_model(model, cfg)
+                    model = get_peft_model(model, lora_cfg)
 
-                model = model.to(device)
-                trainable_p = sum(p.numel() for p in model.parameters() if p.requires_grad)
+                model.to(device)
+
                 total_p = sum(p.numel() for p in model.parameters())
+                trainable_p = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-                # Training Setup
                 use_amp = device == "cuda"
                 params = [p for p in model.parameters() if p.requires_grad]
                 opt = torch.optim.AdamW(params, lr=t_lr, weight_decay=0.01)
