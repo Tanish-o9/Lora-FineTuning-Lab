@@ -1316,7 +1316,7 @@ with tab_analytics:
             margin=dict(l=30, r=30, t=40, b=20),
             title="<b>Multi-Dimensional Efficiency Radar</b>",
         )
-        st.plotly_chart(fig_radar, width="stretch")
+        st.plotly_chart(fig_radar, key="analytics_radar_chart")
 
     with col_front:
         fig_acc = px.scatter(
@@ -1343,7 +1343,7 @@ with tab_analytics:
             xaxis=dict(title="Trainable Parameters (%)", showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
             yaxis=dict(title="Test Accuracy", showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
         )
-        st.plotly_chart(fig_acc, width="stretch")
+        st.plotly_chart(fig_acc, key="analytics_pareto_scatter")
 
     col_foot, col_dur = st.columns(2)
     with col_foot:
@@ -1379,7 +1379,7 @@ with tab_analytics:
             xaxis=dict(showgrid=False),
             yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
         )
-        st.plotly_chart(fig_mem, width="stretch")
+        st.plotly_chart(fig_mem, key="analytics_vram_storage_bar")
 
     with col_dur:
         fig_f1 = px.bar(
@@ -1399,7 +1399,7 @@ with tab_analytics:
             xaxis=dict(showgrid=False),
             yaxis=dict(title="Score (0 to 1)", showgrid=True, gridcolor="rgba(255,255,255,0.08)"),
         )
-        st.plotly_chart(fig_f1, width="stretch")
+        st.plotly_chart(fig_f1, key="analytics_acc_f1_bar")
 
 
 # ----------------------------------------------------------------------------
@@ -1492,7 +1492,7 @@ with tab_arena:
                     xaxis=dict(range=[0, 100], title="Probability %", gridcolor="rgba(255,255,255,0.08)"),
                     yaxis=dict(title="", showgrid=False),
                 )
-                st.plotly_chart(fig_mini_a, width="stretch")
+                st.plotly_chart(fig_mini_a, key="arena_prob_chart_model_a")
 
             with col_res_b:
                 st.markdown(
@@ -1523,7 +1523,7 @@ with tab_arena:
                     xaxis=dict(range=[0, 100], title="Probability %", gridcolor="rgba(255,255,255,0.08)"),
                     yaxis=dict(title="", showgrid=False),
                 )
-                st.plotly_chart(fig_mini_b, width="stretch")
+                st.plotly_chart(fig_mini_b, key="arena_prob_chart_model_b")
 
         except Exception as e:
             st.error(f"Arena execution failed: {e}")
