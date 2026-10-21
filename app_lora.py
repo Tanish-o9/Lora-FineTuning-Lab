@@ -9,6 +9,7 @@ Features:
   - 📋 Benchmark Database & Export Matrix
 """
 import time
+from datetime import datetime
 from pathlib import Path
 import evaluate
 import numpy as np
@@ -43,53 +44,57 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Main background */
+    /* Main background with subtle dot-matrix mesh */
     .stApp {
-        background: radial-gradient(circle at 10% 20%, #111827 0%, #0b0f19 45%, #05070d 100%);
+        background-color: #07090e;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%);
         color: #f8fafc;
     }
 
-    /* Top glowing line */
+    /* Top Glowing Neon Line */
     .top-glow-bar {
         height: 3px;
-        background: linear-gradient(90deg, #6366f1, #a855f7, #06b6d4, #10b981);
+        background: linear-gradient(90deg, #6366f1 0%, #a855f7 35%, #06b6d4 70%, #10b981 100%);
         border-radius: 999px;
-        margin-bottom: 24px;
-        box-shadow: 0 0 16px rgba(99, 102, 241, 0.6);
+        margin-bottom: 22px;
+        box-shadow: 0 0 20px rgba(99, 102, 241, 0.7), 0 0 40px rgba(6, 182, 212, 0.4);
     }
 
-    /* Hero Header */
+    /* Hero Header & Brand Pill */
     .hero-title-container {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
         flex-wrap: wrap;
         gap: 12px;
     }
     .hero-title {
-        font-size: 2.7rem;
+        font-size: 2.85rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #6366f1 0%, #c084fc 40%, #06b6d4 85%);
+        background: linear-gradient(135deg, #ffffff 10%, #c4b5fd 45%, #38bdf8 90%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        letter-spacing: -0.025em;
-        line-height: 1.1;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
     }
     .hero-caption {
         font-size: 1.05rem;
         color: #94a3b8;
         font-weight: 400;
-        margin-bottom: 24px;
+        margin-bottom: 16px;
     }
 
-    /* Live status pill */
+    /* Status Pill */
     .status-pill {
         display: inline-flex;
         align-items: center;
@@ -98,10 +103,11 @@ st.markdown(
         border: 1px solid rgba(16, 185, 129, 0.35);
         color: #34d399;
         font-size: 0.8rem;
-        font-weight: 600;
-        padding: 5px 14px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 6px 16px;
         border-radius: 999px;
-        box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
     }
     .status-dot {
         width: 8px;
@@ -112,132 +118,259 @@ st.markdown(
     }
     @keyframes pulse {
         0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
-    /* KPI Stat Cards with Gradient Border Shimmer */
-    .metric-card {
-        background: rgba(255, 255, 255, 0.025);
+    /* Telemetry Chips Bar */
+    .chip-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+    .chip-item {
+        background: rgba(255, 255, 255, 0.035);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 18px;
+        border-radius: 999px;
+        padding: 5px 14px;
+        font-size: 0.8rem;
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        backdrop-filter: blur(8px);
+    }
+
+    /* KPI Stat Cards with Themed Aura */
+    .metric-card-storage {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        border-radius: 20px;
         padding: 22px 24px;
         backdrop-filter: blur(16px);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .metric-card:hover {
+    .metric-card-storage:hover {
         transform: translateY(-4px);
-        border-color: rgba(99, 102, 241, 0.45);
-        box-shadow: 0 14px 40px rgba(99, 102, 241, 0.2);
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 14px 40px rgba(16, 185, 129, 0.25);
     }
-    .metric-card::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.6), transparent);
+
+    .metric-card-params {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        border-radius: 20px;
+        padding: 22px 24px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .metric-card-params:hover {
+        transform: translateY(-4px);
+        border-color: rgba(59, 130, 246, 0.6);
+        box-shadow: 0 14px 40px rgba(59, 130, 246, 0.25);
+    }
+
+    .metric-card-speed {
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(168, 85, 247, 0.25);
+        border-radius: 20px;
+        padding: 22px 24px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .metric-card-speed:hover {
+        transform: translateY(-4px);
+        border-color: rgba(168, 85, 247, 0.6);
+        box-shadow: 0 14px 40px rgba(168, 85, 247, 0.25);
+    }
+
+    .metric-card-acc {
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(236, 72, 153, 0.25);
+        border-radius: 20px;
+        padding: 22px 24px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .metric-card-acc:hover {
+        transform: translateY(-4px);
+        border-color: rgba(236, 72, 153, 0.6);
+        box-shadow: 0 14px 40px rgba(236, 72, 153, 0.25);
+    }
+
     .metric-title {
         color: #94a3b8;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.07em;
         margin-bottom: 8px;
     }
     .metric-value {
-        font-size: 2.2rem;
+        font-size: 2.3rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #ffffff 10%, #cbd5e1 100%);
+        background: linear-gradient(135deg, #ffffff 10%, #e2e8f0 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         line-height: 1.1;
     }
     .metric-sub {
-        font-size: 0.85rem;
+        font-size: 0.84rem;
         margin-top: 10px;
         display: flex;
         align-items: center;
         gap: 8px;
         flex-wrap: wrap;
     }
+
+    /* Badges */
     .badge-green {
         background: rgba(16, 185, 129, 0.15);
         color: #34d399;
         padding: 3px 10px;
         border-radius: 999px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.78rem;
-        border: 1px solid rgba(16, 185, 129, 0.3);
+        border: 1px solid rgba(16, 185, 129, 0.35);
     }
     .badge-blue {
         background: rgba(59, 130, 246, 0.15);
         color: #60a5fa;
         padding: 3px 10px;
         border-radius: 999px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.78rem;
-        border: 1px solid rgba(59, 130, 246, 0.3);
+        border: 1px solid rgba(59, 130, 246, 0.35);
     }
     .badge-purple {
         background: rgba(168, 85, 247, 0.15);
         color: #c084fc;
         padding: 3px 10px;
         border-radius: 999px;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.78rem;
-        border: 1px solid rgba(168, 85, 247, 0.3);
+        border: 1px solid rgba(168, 85, 247, 0.35);
     }
 
-    /* Training Studio card */
+    /* Global Button Styling (Modern Gradient Lift) */
+    .stButton > button {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.02em !important;
+        padding: 10px 24px !important;
+        box-shadow: 0 4px 18px rgba(99, 102, 241, 0.35) !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 26px rgba(99, 102, 241, 0.55) !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+    }
+    .stButton > button:active {
+        transform: translateY(0px) !important;
+    }
+
+    /* Modern Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.025);
+        padding: 8px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 12px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #94a3b8;
+        transition: all 0.2s ease;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.28) 0%, rgba(168, 85, 247, 0.2) 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(99, 102, 241, 0.5) !important;
+        box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #07090e;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #334155;
+    }
+
+    /* Studio Card */
     .studio-card {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(14px);
+    }
+
+    /* Arena Box */
+    .arena-box {
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        padding: 22px;
+        backdrop-filter: blur(14px);
+    }
+
+    /* Timeline Activity Styles */
+    .timeline-card {
         background: rgba(255, 255, 255, 0.02);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 18px;
-        padding: 24px;
-        margin-bottom: 20px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+        transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
     }
-
-    /* Arena Matchup Cards */
-    .arena-box {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 16px;
-        padding: 20px;
-        backdrop-filter: blur(12px);
+    .timeline-card:hover {
+        transform: translateX(4px);
+        background: rgba(255, 255, 255, 0.035);
     }
-
-    /* Calculator Cards */
-    .calc-box {
-        background: rgba(99, 102, 241, 0.04);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-        border-radius: 16px;
-        padding: 20px;
-    }
-
-    /* Tabs styling */
-    .stTabs [data-baseweb="tab-list"] {
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
         gap: 8px;
-        background: rgba(255, 255, 255, 0.02);
-        padding: 6px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
     }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 10px;
-        padding: 8px 18px;
+    .timeline-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .tag-pill {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        color: #cbd5e1;
         font-weight: 600;
-        color: #94a3b8;
-    }
-    .stTabs [aria-selected="true"] {
-        background: rgba(99, 102, 241, 0.2) !important;
-        color: #f8fafc !important;
-        border: 1px solid rgba(99, 102, 241, 0.45) !important;
     }
 
     /* Emotion Playground styles */
@@ -335,20 +468,27 @@ with st.sidebar:
     )
 
 # ----------------------------------------------------------------------------
-# Hero Top Section
+# Hero Top Section with Telemetry Chips Bar
 # ----------------------------------------------------------------------------
 st.markdown('<div class="top-glow-bar"></div>', unsafe_allow_html=True)
 st.markdown(
-    """
+    f"""
     <div class="hero-title-container">
         <div class="hero-title">⚡ LoRA Fine-Tuning Lab</div>
         <div class="status-pill">
             <div class="status-dot"></div>
-            <span>TRAINING & BENCHMARK STUDIO</span>
+            <span>LIVE BENCHMARK READY</span>
         </div>
     </div>
     <div class="hero-caption">
-        Train, benchmark, and evaluate parameter-efficient LoRA adapters across custom CSV files or Hugging Face datasets.
+        High-precision Parameter-Efficient Adaptation Studio: Benchmark, Train, & Compare LoRA vs Full Fine-Tuning across any dataset.
+    </div>
+    <div class="chip-bar">
+        <div class="chip-item">🖥️ <b>GPU:</b> {gpu_name}</div>
+        <div class="chip-item">⚡ <b>PyTorch:</b> {torch_ver}</div>
+        <div class="chip-item">🤖 <b>Base Model:</b> {model_name} (66.9M)</div>
+        <div class="chip-item">📦 <b>Logged Runs:</b> {len(df)} Active</div>
+        <div class="chip-item">🚀 <b>Precision:</b> FP16 AMP</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -374,7 +514,7 @@ if not full_df.empty and not lora_df.empty:
     with kpi1:
         st.markdown(
             f"""
-            <div class="metric-card">
+            <div class="metric-card-storage">
                 <div class="metric-title">💾 Disk Storage Saving</div>
                 <div class="metric-value">-{size_red:.1f}%</div>
                 <div class="metric-sub">
@@ -388,7 +528,7 @@ if not full_df.empty and not lora_df.empty:
     with kpi2:
         st.markdown(
             f"""
-            <div class="metric-card">
+            <div class="metric-card-params">
                 <div class="metric-title">🧠 Trainable Parameters</div>
                 <div class="metric-value">-{param_red:.1f}%</div>
                 <div class="metric-sub">
@@ -402,7 +542,7 @@ if not full_df.empty and not lora_df.empty:
     with kpi3:
         st.markdown(
             f"""
-            <div class="metric-card">
+            <div class="metric-card-speed">
                 <div class="metric-title">⚡ Training Speedup</div>
                 <div class="metric-value">{speedup:.1f}x</div>
                 <div class="metric-sub">
@@ -416,7 +556,7 @@ if not full_df.empty and not lora_df.empty:
     with kpi4:
         st.markdown(
             f"""
-            <div class="metric-card">
+            <div class="metric-card-acc">
                 <div class="metric-title">🎯 Best LoRA Accuracy</div>
                 <div class="metric-value">{best_lora['accuracy']*100:.1f}%</div>
                 <div class="metric-sub">
@@ -430,11 +570,12 @@ if not full_df.empty and not lora_df.empty:
     st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 
 # ----------------------------------------------------------------------------
-# 6 Interactive Core Modules (Tabs)
+# 7 Interactive Core Modules (Tabs)
 # ----------------------------------------------------------------------------
-tab_studio, tab_analytics, tab_arena, tab_playground, tab_calc, tab_table = st.tabs(
+tab_studio, tab_history, tab_analytics, tab_arena, tab_playground, tab_calc, tab_table = st.tabs(
     [
         "🚀 Training Studio",
+        "📜 Lab History & Activity",
         "📊 Analytics & Radar",
         "⚔️ Model Arena (Side-by-Side)",
         "🧪 Live Inference Playground",
@@ -802,7 +943,163 @@ with tab_studio:
 
 
 # ----------------------------------------------------------------------------
-# TAB 2: Analytics & Radar Trade-Off
+# TAB 2: Lab Activity & History Timeline
+# ----------------------------------------------------------------------------
+with tab_history:
+    st.markdown("### 📜 **Lab Activity & Experiment Timeline**")
+    st.markdown("Complete chronological audit trail of all training runs, ablation studies, and model checkpoints generated in this workspace.")
+
+    # Top KPI summary for history
+    hist_c1, hist_c2, hist_c3, hist_c4 = st.columns(4)
+    with hist_c1:
+        st.markdown(
+            f"""
+            <div class="metric-card" style="padding:16px;">
+                <div class="metric-title">🔬 Total Experiments</div>
+                <div class="metric-value" style="font-size:1.8rem;">{len(df)}</div>
+                <div class="metric-sub"><span class="badge-blue">Saved Runs</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with hist_c2:
+        tot_time = df["train_time_s"].sum()
+        st.markdown(
+            f"""
+            <div class="metric-card" style="padding:16px;">
+                <div class="metric-title">⚡ Total Compute</div>
+                <div class="metric-value" style="font-size:1.8rem;">{tot_time:.1f}s</div>
+                <div class="metric-sub"><span class="badge-purple">GPU Active Time</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with hist_c3:
+        best_run_row = df.sort_values(by="accuracy", ascending=False).iloc[0]
+        st.markdown(
+            f"""
+            <div class="metric-card" style="padding:16px;">
+                <div class="metric-title">🏆 Best Accuracy</div>
+                <div class="metric-value" style="font-size:1.8rem;">{best_run_row['accuracy']*100:.1f}%</div>
+                <div class="metric-sub"><span class="badge-green">{best_run_row['run']}</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with hist_c4:
+        tot_size = df["saved_size_mb"].sum()
+        st.markdown(
+            f"""
+            <div class="metric-card" style="padding:16px;">
+                <div class="metric-title">📦 Total Checkpoints</div>
+                <div class="metric-value" style="font-size:1.8rem;">{tot_size:.1f} MB</div>
+                <div class="metric-sub"><span class="badge-blue">On Disk</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+    # Filter and Search row
+    f_c1, f_c2, f_c3 = st.columns([1, 1.2, 1.8])
+    with f_c1:
+        hist_mode_filter = st.selectbox("Filter Mode:", ["All Modes", "LoRA Only", "Full Fine-Tuning Only"], index=0, key="hist_filter_mode")
+    with f_c2:
+        hist_sort_by = st.selectbox(
+            "Sort Experiments By:",
+            ["Most Recent (Last Run)", "Highest Accuracy", "Fastest Training", "Smallest Checkpoint Size"],
+            index=0,
+            key="hist_sort",
+        )
+    with f_c3:
+        hist_search = st.text_input("🔍 Search Experiments:", placeholder="Search by run name, rank, or targets...", key="hist_search_box")
+
+    # Apply filters
+    filtered_df = df.copy()
+    if hist_mode_filter == "LoRA Only":
+        filtered_df = filtered_df[filtered_df["mode"] == "lora"]
+    elif hist_mode_filter == "Full Fine-Tuning Only":
+        filtered_df = filtered_df[filtered_df["mode"] == "full"]
+
+    if hist_search:
+        mask = filtered_df["run"].astype(str).str.contains(hist_search, case=False, na=False) | filtered_df["targets"].astype(str).str.contains(hist_search, case=False, na=False)
+        filtered_df = filtered_df[mask]
+
+    if hist_sort_by == "Most Recent (Last Run)":
+        filtered_df = filtered_df.iloc[::-1]
+    elif hist_sort_by == "Highest Accuracy":
+        filtered_df = filtered_df.sort_values(by="accuracy", ascending=False)
+    elif hist_sort_by == "Fastest Training":
+        filtered_df = filtered_df.sort_values(by="train_time_s", ascending=True)
+    elif hist_sort_by == "Smallest Checkpoint Size":
+        filtered_df = filtered_df.sort_values(by="saved_size_mb", ascending=True)
+
+    st.markdown("---")
+
+    # Render each run as an activity card
+    for idx_num, (_, row) in enumerate(filtered_df.iterrows(), 1):
+        run_name = str(row["run"])
+        run_mode = str(row["mode"]).upper()
+        mode_color = "#a855f7" if row["mode"] == "lora" else "#f43f5e"
+        border_color = "#8b5cf6" if row["mode"] == "lora" else "#f43f5e"
+
+        # Check timestamp from filesystem
+        ckpt_dir = Path("runs") / run_name
+        if ckpt_dir.exists():
+            mtime = ckpt_dir.stat().st_mtime
+            timestamp_str = datetime.fromtimestamp(mtime).strftime("%d %b %Y, %I:%M:%S %p")
+            files_list = [f"{f.name} ({f.stat().st_size / 1024**2:.2f} MB)" for f in ckpt_dir.glob("*") if f.is_file()]
+        else:
+            timestamp_str = "Logged in CSV"
+            files_list = ["Checkpoint directory not found on disk"]
+
+        rank_info = f"Rank: {int(row['rank'])} | Alpha: {int(row['alpha'])}" if pd.notna(row.get('rank')) else "Full Weights Train"
+        targets_info = f"Targets: {row['targets']}" if pd.notna(row.get('targets')) else "All Layers"
+        acc_pct = row["accuracy"] * 100
+        f1_score = row["macro_f1"]
+
+        st.markdown(
+            f"""
+            <div class="timeline-card" style="border-left: 5px solid {border_color};">
+                <div class="timeline-header">
+                    <div>
+                        <span style="font-size:1.25rem; font-weight:800; color:#f8fafc;">#{idx_num} {run_name}</span>
+                        <span style="background:rgba(255,255,255,0.06); color:{mode_color}; border:1px solid {mode_color}; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:8px;">{run_mode}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#94a3b8; font-family:'JetBrains Mono', monospace;">🕒 {timestamp_str}</div>
+                </div>
+                <div class="timeline-meta">
+                    <span class="tag-pill" style="border-color:rgba(16,185,129,0.3); color:#34d399;">🎯 Accuracy: <b>{acc_pct:.1f}%</b></span>
+                    <span class="tag-pill" style="border-color:rgba(59,130,246,0.3); color:#60a5fa;">📊 Macro F1: <b>{f1_score:.4f}</b></span>
+                    <span class="tag-pill">⚡ Time: <b>{row['train_time_s']}s</b></span>
+                    <span class="tag-pill">💾 Size: <b>{row['saved_size_mb']:.2f} MB</b></span>
+                    <span class="tag-pill">🧠 Params: <b>{int(row['trainable_params']):,} ({row['trainable_pct']}%)</b></span>
+                    <span class="tag-pill">🖥️ VRAM: <b>{row['peak_train_mem_mb']:.1f} MB</b></span>
+                </div>
+                <div style="margin-top:10px; font-size:0.85rem; color:#94a3b8;">
+                    <b>Configuration:</b> {rank_info} &nbsp;|&nbsp; {targets_info} &nbsp;|&nbsp; Epochs: {int(row['epochs'])} &nbsp;|&nbsp; LR: {row['lr']} &nbsp;|&nbsp; Samples: {int(row['train_size'])}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        with st.expander(f"📂 View Files & CLI Snippet for `{run_name}`"):
+            col_exp1, col_exp2 = st.columns([1.2, 1])
+            with col_exp1:
+                st.markdown("**Saved Checkpoint Files:**")
+                st.code("\n".join(files_list) if files_list else "No files found")
+            with col_exp2:
+                st.markdown("**Inference CLI Snippet:**")
+                if row["mode"] == "lora":
+                    st.code(f'python predict.py --adapter runs/{run_name} "your test sentence"')
+                else:
+                    st.code(f"# Full checkpoint at runs/{run_name}")
+
+
+# ----------------------------------------------------------------------------
+# TAB 3: Analytics & Radar Trade-Off
 # ----------------------------------------------------------------------------
 with tab_analytics:
     col_rad, col_front = st.columns([1.1, 1.2])
@@ -993,6 +1290,17 @@ with tab_arena:
                 f"""
                 <div style="text-align:center; padding:12px; margin: 16px 0; background: rgba(255,255,255,0.02); border: 1px solid {verdict_color}; border-radius:12px;">
                     <span style="font-size:1.1rem; font-weight:700; color:{verdict_color};">{verdict_icon} {verdict_text}: Selected <b>{pred_a.upper()}</b></span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            st.markdown(
+                """
+                <div style="display:flex; justify-content:center; align-items:center; margin: 6px 0 16px 0;">
+                    <div style="background: linear-gradient(135deg, #6366f1, #ec4899); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem; color: #ffffff; box-shadow: 0 0 30px rgba(236,72,153,0.5), 0 0 15px rgba(99,102,241,0.6); letter-spacing:0.05em;">
+                        VS
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True,

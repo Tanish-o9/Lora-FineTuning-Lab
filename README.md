@@ -188,12 +188,14 @@ Launch the visual dashboard to analyze and compare metrics across all runs:
 python -m streamlit run app_lora.py
 ```
 
-The upgraded dashboard features 5 interactive modules:
-1. **📊 Analytics & Multi-Dimensional Radar:** 5-axis spider chart comparing Storage Efficiency, VRAM Savings, Speedup, Accuracy, and F1 across runs alongside Pareto frontier curves.
-2. **⚔️ Model Arena (Side-by-Side):** Test any two models head-to-head on the same input sentence to compare emotion predictions, confidence distributions, and inference latency.
-3. **🧪 Live Inference Playground:** Real-time text classification with confidence gauge meters, animated probability bars, and instant emotion tagging.
-4. **🧮 LoRA Parameter Calculator:** Interactive sliders for Rank ($r$), Alpha ($\alpha$), and projection targets with real-time parameter and memory scaling estimation.
-5. **📋 Benchmark Database & Export:** Full benchmark dataset and baseline percentage reduction matrix with instant CSV download.
+The upgraded dashboard features 7 interactive modules:
+1. **🚀 In-Browser Training Studio:** Train LoRA adapters or full models directly from the UI using custom CSV files or Hugging Face datasets (`fancyzhx/ag_news`, `dair-ai/emotion`, `stanfordnlp/imdb`).
+2. **📜 Lab Activity & History Timeline:** Complete chronological audit trail of all experiments with timestamps, hyperparameters, accuracy, compute duration, checkpoint size, and file explorer.
+3. **📊 Analytics & Multi-Dimensional Radar:** 5-axis spider chart comparing Storage Efficiency, VRAM Savings, Speedup, Accuracy, and F1 across runs alongside Pareto frontier curves.
+4. **⚔️ Model Arena (Side-by-Side):** Test any two models head-to-head on the same input sentence to compare predictions, confidence distributions, and inference latency.
+5. **🧪 Live Inference Playground:** Real-time text classification with confidence gauge meters, animated probability bars, and instant class tagging.
+6. **🧮 LoRA Parameter Calculator:** Interactive sliders for Rank ($r$), Alpha ($\alpha$), and projection targets with real-time parameter and memory scaling estimation.
+7. **📋 Benchmark Database & Export:** Full benchmark dataset and baseline percentage reduction matrix with instant CSV download.
 
 ---
 
